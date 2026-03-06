@@ -1,7 +1,99 @@
 <!DOCTYPE html>
-<html>
-<head><title>AWS Test</title></head>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Cloud Deployment | Tattu</title>
+    <style>
+        :root {
+            --aws-orange: #ff9900;
+            --aws-navy: #232f3e;
+            --bg-light: #f2f3f3;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-light);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--aws-navy);
+        }
+
+        .card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            border-top: 8px solid var(--aws-orange);
+            max-width: 400px;
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        h1 {
+            margin: 0 0 1rem 0;
+            font-size: 1.8rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            background: #e7f4e4;
+            color: #2e7d32;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        button {
+            background-color: var(--aws-orange);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #ec8b00;
+        }
+
+        #timestamp {
+            margin-top: 1.5rem;
+            font-size: 0.75rem;
+            color: #666;
+        }
+    </style>
+</head>
 <body>
-    <h1>Hello Tattu! How are you!</h1>
+
+    <div class="card">
+        <div class="status-badge">● Instance Running</div>
+        <h1>Hello Tattu!</h1>
+        <p>Your AWS environment is successfully configured and serving traffic.</p>
+        
+        <button onclick="updateTime()">Refresh Status</button>
+        
+        <div id="timestamp">Last Checked: Just now</div>
+    </div>
+
+    <script>
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('timestamp').innerText = 
+                "Last Checked: " + now.toLocaleTimeString();
+            alert("Connection to server is healthy!");
+        }
+    </script>
 </body>
 </html>
