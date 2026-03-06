@@ -2,206 +2,179 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Lankacom Sports Hub | Multi-Game Portal</title>
+    <title>Linux Root Challenge | Lankacom Edition</title>
     <style>
-        :root { --green: #00ff41; --gold: #fbc02d; --bg: #0a0a0a; --panel: #1a1a1b; }
-        body { background: #121213; color: white; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; overflow: hidden; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        :root { --green: #00ff41; --bg: #050505; --warn: #ffb100; --error: #ff3e3e; }
+        body { background: #121212; color: #eee; font-family: 'Consolas', monospace; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
         
-        /* Containers */
-        #login-screen, #menu-screen, #game-container { position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.9); }
-        .main-layout { display: flex; gap: 20px; padding: 20px; }
+        /* Login Styles */
+        #login-screen { position: fixed; inset: 0; background: rgba(10,10,10,0.95); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-box { border: 1px solid var(--green); padding: 40px; text-align: center; background: #000; box-shadow: 0 0 20px var(--green); }
+        .login-box input { background: transparent; border: 1px solid var(--green); color: var(--green); padding: 10px; margin: 20px 0; width: 250px; text-align: center; outline: none; }
         
-        /* UI Components */
-        .box { border: 2px solid var(--green); padding: 40px; background: #000; text-align: center; border-radius: 10px; width: 400px; }
-        .sidebar { width: 250px; background: #111; border: 1px solid #333; padding: 20px; border-radius: 8px; height: 500px; display: flex; flex-direction: column; }
-        input { background: transparent; border: 1px solid var(--green); color: var(--green); padding: 12px; margin: 15px 0; width: 250px; text-align: center; outline: none; }
-        button { background: var(--green); border: none; padding: 12px 30px; font-weight: bold; cursor: pointer; border-radius: 5px; transition: 0.3s; }
-        button:hover { transform: scale(1.05); filter: brightness(1.2); }
-
-        /* Menu Grid */
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
-        .menu-btn { background: #222; border: 1px solid #444; color: white; padding: 30px; cursor: pointer; border-radius: 8px; font-weight: bold; }
-        .menu-btn:hover { border-color: var(--gold); background: #333; }
-
-        /* Game UI */
-        canvas { background: #000; border: 3px solid #333; border-radius: 8px; }
-        .score-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #222; font-size: 0.85rem; }
-        .sync-tag { font-size: 0.6rem; color: #555; margin-top: auto; text-align: center; }
+        /* Terminal Styles */
+        .terminal { width: 850px; background: var(--bg); border: 1px solid #333; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: none; }
+        .header { background: #222; padding: 10px; font-size: 0.8rem; color: #888; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
+        #output { height: 400px; padding: 20px; overflow-y: auto; white-space: pre-wrap; font-size: 0.95rem; }
+        .input-line { display: flex; padding: 10px 20px 20px; border-top: 1px solid #1a1a1a; }
+        #cmd-input { background: transparent; border: none; color: var(--green); flex: 1; font-family: inherit; font-size: 1rem; outline: none; margin-left: 10px; }
+        
+        .prompt { color: var(--green); font-weight: bold; }
+        .success { color: var(--green); }
+        .fail { color: var(--error); }
+        .hint { color: var(--warn); font-style: italic; }
+        
+        /* Stats & Leaderboard */
+        .progress-bar { width: 850px; height: 10px; background: #222; margin-top: 20px; border-radius: 5px; overflow: hidden; display: none; }
+        #progress-fill { height: 100%; width: 0%; background: var(--green); transition: 0.5s; }
+        
+        #leaderboard { margin-top: 30px; width: 850px; border-top: 1px solid #444; padding-top: 15px; display: none; }
+        .score-entry { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        .score-entry:first-child { color: var(--green); font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div id="login-screen">
-        <div class="box">
-            <h1 style="color: var(--green);">SPORTS HUB LOGIN</h1>
-            <input type="text" id="username" placeholder="ENTER YOUR NAME" maxlength="12">
+        <div class="login-box">
+            <h1 style="color: var(--green); margin:0;">SYSTEM AUTHENTICATION</h1>
+            <p style="color: #666;">Establishing SSH Connection to Lankacom Cluster...</p>
+            <input type="text" id="user-handle" placeholder="ENTER_USERNAME" maxlength="15" autofocus>
             <br>
-            <button onclick="handleLogin()">ENTER STADIUM</button>
-            <div id="login-leaderboard" style="margin-top:20px; text-align:left;">
-                <h3 style="font-size:0.8rem; color: var(--gold);">GLOBAL RECORDS</h3>
-                <div class="score-list" id="global-scores-login"></div>
-            </div>
+            <button onclick="bootSystem()" style="background: var(--green); border:none; padding: 10px 30px; cursor:pointer; font-weight:bold;">INITIALIZE</button>
         </div>
     </div>
 
-    <div id="menu-screen" style="display:none;">
-        <div class="box" style="width: 500px;">
-            <h2 id="welcome-msg">Welcome, Player</h2>
-            <p>Select your Discipline:</p>
-            <div class="menu-grid">
-                <button class="menu-btn" onclick="startSport('cricket')">🏏 CRICKET</button>
-                <button class="menu-btn" onclick="startSport('football')">⚽ FOOTBALL</button>
-                <button class="menu-btn" onclick="startSport('basketball')">🏀 BASKETBALL</button>
-                <button class="menu-btn" onclick="startSport('pinball')">🕹️ PINBALL</button>
-            </div>
-            <button onclick="location.reload()" style="margin-top:20px; background:#444;">LOGOUT</button>
+    <div class="terminal" id="term-ui">
+        <div class="header">
+            <span id="term-title">SSH: enzo@prod-instance</span>
+            <span id="timer">Time: 0s</span>
+        </div>
+        <div id="output"></div>
+        <div class="input-line">
+            <span class="prompt" id="user-prompt">root@aws:~$</span>
+            <input type="text" id="cmd-input" autocomplete="off">
         </div>
     </div>
 
-    <div id="game-container" style="display:none;">
-        <div class="main-layout">
-            <div id="game-stage">
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                    <span id="current-game-name" style="color:var(--gold); font-weight:bold;">GAME</span>
-                    <span id="game-stats">Score: 0 | Remaining: 10</span>
-                </div>
-                <canvas id="gameCanvas" width="500" height="500"></canvas>
-                <div style="text-align:center; margin-top:15px;">
-                    <button id="action-btn" onclick="gameAction()">ACTION!</button>
-                </div>
-            </div>
+    <div class="progress-bar" id="progress-container"><div id="progress-fill"></div></div>
 
-            <div class="sidebar">
-                <h3 style="color:var(--green)">LIVE SCORES</h3>
-                <div id="sidebar-scores" style="flex-grow:1; overflow-y:auto;"></div>
-                <div class="sync-tag">Auto-Sync in <span id="sync-clock">10</span>s</div>
-                <button onclick="backToMenu()" style="margin-top:10px; background:#333; font-size:0.7rem;">CHANGE GAME</button>
-            </div>
-        </div>
+    <div id="leaderboard">
+        <h3 style="color: var(--green);">TOP SYSTEM ENGINEERS (FASTEST REPAIRS)</h3>
+        <div id="score-list"></div>
+        <button onclick="location.reload()" style="margin-top:20px; background:#333; color:white; border:none; padding:5px 15px; cursor:pointer;">New Deployment</button>
     </div>
 
     <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        let user = "", score = 0, currentSport = "", syncTimer = 10, attempts = 0, gameActive = false;
-        let ball = { x: 250, y: 50, dx: 2, dy: 4, active: false };
+        const input = document.getElementById('cmd-input');
+        const output = document.getElementById('output');
+        const progress = document.getElementById('progress-fill');
+        
+        let currentUser = "";
+        let currentStep = 0;
+        let startTime, timerInterval;
+        let missionComplete = false;
 
-        // --- GLOBAL SCORE SYNC (Every 10s) ---
-        function refreshLeaderboards() {
-            const data = JSON.parse(localStorage.getItem('hub_scores') || "[]");
-            const html = data.length ? data.map(i => `<div class="score-row"><span>${i.n}</span><span>${i.s} pts</span></div>`).join('') : "No data.";
-            document.getElementById('global-scores-login').innerHTML = html;
-            document.getElementById('sidebar-scores').innerHTML = html;
+        const questionPool = [
+            { q: "PID 999 is consuming 100% CPU. Kill it.", a: "kill -9 999" },
+            { q: "Give 'deploy.sh' full permissions (777).", a: "chmod 777 deploy.sh" },
+            { q: "Show the last 10 lines of 'syslog'.", a: "tail syslog" },
+            { q: "Create a directory called 'aws_configs'.", a: "mkdir aws_configs" },
+            { q: "Find the string 'ERROR' in 'app.log'.", a: "grep ERROR app.log" },
+            { q: "Restart the SSH service.", a: "systemctl restart ssh" },
+            { q: "Move 'data.txt' into the '/tmp' folder.", a: "mv data.txt /tmp" },
+            { q: "Check disk usage in human-readable format.", a: "df -h" },
+            { q: "Display all running processes.", a: "ps aux" },
+            { q: "Update the server package list.", a: "apt update" }
+        ];
+
+        // Pick 10 random
+        const activeMissions = questionPool.sort(() => 0.5 - Math.random()).slice(0, 10);
+
+        function log(msg, type = '') {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = msg;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
         }
 
-        setInterval(() => {
-            syncTimer--;
-            if (syncTimer < 0) { refreshLeaderboards(); syncTimer = 10; }
-            document.getElementById('sync-clock').innerText = syncTimer;
-        }, 1000);
-
-        refreshLeaderboards();
-
-        // --- NAVIGATION ---
-        function handleLogin() {
-            user = document.getElementById('username').value.trim();
-            if(!user) return alert("Identify yourself!");
+        function bootSystem() {
+            const name = document.getElementById('user-handle').value.trim();
+            if(!name) return alert("Identify yourself, Engineer!");
+            
+            currentUser = name;
             document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('menu-screen').style.display = 'flex';
-            document.getElementById('welcome-msg').innerText = `Welcome, ${user}`;
-        }
-
-        function startSport(sport) {
-            currentSport = sport;
-            score = 0; attempts = 10; gameActive = true;
-            document.getElementById('menu-screen').style.display = 'none';
-            document.getElementById('game-container').style.display = 'flex';
-            document.getElementById('current-game-name').innerText = sport.toUpperCase();
-            resetBall();
-            updateUI();
-            requestAnimationFrame(render);
-        }
-
-        function backToMenu() {
-            gameActive = false;
-            document.getElementById('game-container').style.display = 'none';
-            document.getElementById('menu-screen').style.display = 'flex';
-        }
-
-        // --- GAME LOGIC ---
-        function resetBall() {
-            ball.active = true;
-            ball.y = 50;
-            ball.x = 250;
-            if(currentSport === 'pinball') { ball.y = 250; ball.dy = 4; ball.dx = 3; }
-            else { ball.dy = 4 + Math.random() * 4; }
-        }
-
-        function gameAction() {
-            if(!ball.active) return;
-            let hit = false;
-            let points = 0;
-
-            if(currentSport === 'cricket' && ball.y > 400 && ball.y < 460) { hit = true; points = 6; }
-            if(currentSport === 'football' && ball.y > 100 && ball.y < 200) { hit = true; points = 10; }
-            if(currentSport === 'basketball' && ball.y > 150 && ball.y < 250) { hit = true; points = 20; }
+            document.getElementById('term-ui').style.display = 'block';
+            document.getElementById('progress-container').style.display = 'block';
+            document.getElementById('user-prompt').innerText = `${currentUser.toLowerCase()}@aws:~$`;
+            document.getElementById('term-title').innerText = `SSH: ${currentUser.toLowerCase()}@prod-instance`;
             
-            if(hit) { score += points; }
-            
-            if(currentSport !== 'pinball') {
-                attempts--;
-                ball.active = false;
-                setTimeout(attempts > 0 ? resetBall : endGame, 1000);
-            }
-            updateUI();
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timer').innerText = `Time: ${elapsed}s`;
+            }, 1000);
+
+            log(`WELCOME ${currentUser.toUpperCase()}. STARTING 10-STEP SYSTEM REPAIR...`);
+            log("------------------------------------------------------------------");
+            log(`MISSION 1: ${activeMissions[0].q}`, 'hint');
+            input.focus();
         }
 
-        function updateUI() {
-            document.getElementById('game-stats').innerText = `Score: ${score} | Turns: ${attempts}`;
-        }
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !missionComplete) {
+                const val = input.value.trim();
+                input.value = '';
+                log(`<span class="prompt">${currentUser.toLowerCase()}@aws:~$</span> ${val}`);
 
-        function render() {
-            if(!gameActive) return;
-            ctx.clearRect(0, 0, 500, 500);
+                if (val === activeMissions[currentStep].a) {
+                    log("✓ CMD OK.", "success");
+                    currentStep++;
+                    progress.style.width = (currentStep / 10) * 100 + "%";
 
-            // Draw Dynamic Backgrounds based on sport
-            if(currentSport === 'cricket') { ctx.fillStyle="#2e7d32"; ctx.fillRect(0,0,500,500); ctx.fillStyle="#e6b35c"; ctx.fillRect(220,0,60,500); ctx.fillStyle="rgba(255,255,255,0.3)"; ctx.fillRect(220,400,60,60); }
-            if(currentSport === 'football') { ctx.fillStyle="#1b5e20"; ctx.fillRect(0,0,500,500); ctx.strokeStyle="white"; ctx.strokeRect(100,50,300,150); }
-            if(currentSport === 'basketball') { ctx.fillStyle="#333"; ctx.fillRect(0,0,500,500); ctx.strokeStyle="orange"; ctx.beginPath(); ctx.arc(250,200,40,0,Math.PI*2); ctx.stroke(); }
-            if(currentSport === 'pinball') { ctx.fillStyle="#000"; ctx.fillRect(0,0,500,500); }
-
-            // Ball Physics
-            if(ball.active) {
-                ctx.beginPath();
-                ctx.arc(ball.x, ball.y, 10, 0, Math.PI*2);
-                ctx.fillStyle = currentSport === 'cricket' ? "red" : "orange";
-                ctx.fill();
-                ball.y += ball.dy;
-                
-                if(currentSport === 'pinball') {
-                    ball.x += ball.dx;
-                    if(ball.x < 10 || ball.x > 490) ball.dx *= -1;
-                    if(ball.y < 10) ball.dy *= -1;
-                    if(ball.y > 490) { attempts--; ball.active=false; attempts > 0 ? resetBall() : endGame(); }
-                } else if(ball.y > 500) {
-                    ball.active = false;
-                    attempts--;
-                    attempts > 0 ? resetBall() : endGame();
+                    if (currentStep < 10) {
+                        log(`MISSION ${currentStep + 1}: ${activeMissions[currentStep].q}`, 'hint');
+                    } else {
+                        finishChallenge();
+                    }
+                } else {
+                    log("✗ COMMAND REJECTED.", "fail");
                 }
             }
-            updateUI();
-            requestAnimationFrame(render);
+        });
+
+        function finishChallenge() {
+            missionComplete = true;
+            clearInterval(timerInterval);
+            const finalTime = Math.floor((Date.now() - startTime) / 1000);
+            
+            log("\n========================================");
+            log(`CONGRATULATIONS ${currentUser}! ALL MISSIONS COMPLETE.`, "success");
+            log(`TOTAL REPAIR TIME: ${finalTime} SECONDS.`, "success");
+            
+            saveScore(currentUser, finalTime);
+            document.getElementById('leaderboard').style.display = 'block';
+            showLeaderboard();
         }
 
-        function endGame() {
-            gameActive = false;
-            alert(`MATCH OVER! Total Score: ${score}`);
-            let data = JSON.parse(localStorage.getItem('hub_scores') || "[]");
-            data.push({ n: user, s: score });
-            data.sort((a,b) => b.s - a.s);
-            localStorage.setItem('hub_scores', JSON.stringify(data.slice(0, 10)));
-            refreshLeaderboards();
-            backToMenu();
+        function saveScore(name, time) {
+            let scores = JSON.parse(localStorage.getItem('linux_scores') || "[]");
+            scores.push({ name, time, date: new Date().toLocaleDateString() });
+            scores.sort((a, b) => a.time - b.time);
+            localStorage.setItem('linux_scores', JSON.stringify(scores.slice(0, 8)));
+        }
+
+        function showLeaderboard() {
+            const scores = JSON.parse(localStorage.getItem('linux_scores') || "[]");
+            const list = document.getElementById('score-list');
+            list.innerHTML = scores.map((s, i) => `
+                <div class="score-entry">
+                    <span>${i+1}. ${s.name}</span>
+                    <span>${s.time} seconds</span>
+                    <span style="color: #444;">${s.date}</span>
+                </div>
+            `).join('') || "No records yet.";
         }
     </script>
 </body>
