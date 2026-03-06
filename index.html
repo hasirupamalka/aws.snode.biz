@@ -2,49 +2,60 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Linux Basics | Sudo Snake</title>
+    <title>Linux Trace | Sidebar Edition</title>
     <style>
-        :root { --green: #00ff41; --linux: #fcfcfc; --bg: #0a0a0a; }
-        body { background: #1a1a1b; color: white; font-family: 'Consolas', monospace; display: flex; flex-direction: column; align-items: center; margin: 0; }
+        :root { --green: #00ff41; --linux: #fcfcfc; --bg: #0a0a0a; --sidebar: #151515; }
+        body { background: #1a1a1b; color: white; font-family: 'Consolas', monospace; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         
+        /* Layout */
+        .main-wrapper { display: flex; gap: 20px; padding: 20px; }
+        
+        /* Game Screen */
+        #game-area { display: none; flex-direction: column; align-items: center; }
+        canvas { background: var(--bg); border: 2px solid #333; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+        #question-box { width: 600px; background: #222; padding: 15px; border-radius: 5px; margin-bottom: 10px; text-align: center; border-left: 5px solid var(--green); }
+        
+        /* Right Sidebar Leaderboard */
+        .sidebar { width: 250px; background: var(--sidebar); border: 1px solid #333; padding: 20px; border-radius: 8px; height: 460px; overflow-y: auto; }
+        .sidebar h3 { color: var(--green); margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; font-size: 1rem; }
+        .score-entry { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #222; font-size: 0.85rem; }
+        .score-entry:nth-child(2) { color: gold; font-weight: bold; } /* Top Player */
+
+        /* Login Overlay */
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; justify-content: center; align-items: center; z-index: 100; }
         .box { border: 2px solid var(--green); padding: 40px; text-align: center; background: #000; }
-        input { background: transparent; border: 1px solid var(--green); color: var(--green); padding: 10px; margin: 20px 0; width: 250px; text-align: center; outline: none; }
+        input { background: transparent; border: 1px solid var(--green); color: var(--green); padding: 10px; margin: 20px 0; width: 200px; text-align: center; outline: none; }
         
-        #game-container { display: none; margin-top: 20px; position: relative; }
-        canvas { background: var(--bg); border: 2px solid #333; }
-        .ui-panel { width: 600px; display: flex; justify-content: space-between; margin-bottom: 10px; color: var(--green); }
-        #question-box { width: 600px; background: #222; padding: 15px; border-radius: 5px; margin-bottom: 10px; text-align: center; border-left: 5px solid white; }
-        
-        #leaderboard { margin-top: 20px; width: 400px; display: none; }
-        .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; }
+        .ui-panel { width: 600px; display: flex; justify-content: space-between; color: var(--green); margin-bottom: 5px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
     <div id="overlay">
         <div class="box">
-            <h1 style="color: white; margin:0;">LINUX BASICS TRACE</h1>
-            <p>Enter your name to start the terminal session:</p>
-            <input type="text" id="username" placeholder="USER_NAME" maxlength="12" autofocus>
+            <h1 style="color: white; margin:0;">LINUX BASICS</h1>
+            <input type="text" id="username" placeholder="NAME" maxlength="12" autofocus>
             <br>
-            <button onclick="startGame()" style="background: var(--green); border:none; padding: 10px 30px; cursor:pointer; font-weight:bold;">LOGIN</button>
+            <button onclick="startGame()" style="background: var(--green); border:none; padding: 10px 30px; cursor:pointer; font-weight:bold;">START SESSION</button>
         </div>
     </div>
 
-    <div id="game-container">
-        <div class="ui-panel">
-            <span>Engineer: <span id="stat-user"></span></span>
-            <span>Knowledge: <span id="stat-score">0</span>%</span>
+    <div class="main-wrapper" id="content" style="display: none;">
+        <div id="game-area">
+            <div class="ui-panel">
+                <span>Engineer: <span id="stat-user"></span></span>
+                <span>Accuracy: <span id="stat-score">0</span>%</span>
+            </div>
+            <div id="question-box">Booting Kernel...</div>
+            <canvas id="gameCanvas" width="600" height="400"></canvas>
+            <p style="color: #555; font-size: 0.7rem; margin-top: 10px;">ARROWS to Move | Correct = Grow | Wrong = Reset</p>
         </div>
-        <div id="question-box">Loading Shell...</div>
-        <canvas id="gameCanvas" width="600" height="400"></canvas>
-    </div>
 
-    <div id="leaderboard">
-        <h3 style="color: white">ENGINEER LEADERBOARD</h3>
-        <div id="score-list"></div>
-        <button onclick="location.reload()" style="margin-top:20px; background:var(--green); border:none; padding:10px; cursor:pointer;">RESTART SESSION</button>
+        <div class="sidebar">
+            <h3>GLOBAL SCORES</h3>
+            <div id="score-list"></div>
+            <button onclick="location.reload()" style="margin-top:20px; width: 100%; background: #333; color: white; border: none; padding: 8px; cursor: pointer; font-size: 0.7rem;">RESET GAME</button>
+        </div>
     </div>
 
     <script>
@@ -52,64 +63,53 @@
         const ctx = canvas.getContext('2d');
         const grid = 20;
         let snake = [{x: 160, y: 160}, {x: 140, y: 160}];
-        let dx = grid, dy = 0;
-        let score = 0, currentQ = 0, user = "";
-        let targets = [];
-        let gameActive = false;
+        let dx = grid, dy = 0, score = 0, currentQ = 0, user = "", targets = [], gameActive = false;
 
-        // --- BASIC LINUX QUESTIONS ---
         const missions = [
-            { q: "How do you see the files in a folder?", a: "ls", options: ["ls", "show", "list"] },
-            { q: "Command to print the current directory path?", a: "pwd", options: ["path", "pwd", "where"] },
-            { q: "How to make a new folder?", a: "mkdir", options: ["newdir", "mkdir", "md"] },
-            { q: "Command to change your current directory?", a: "cd", options: ["go", "mov", "cd"] },
-            { q: "How to delete a file?", a: "rm", options: ["del", "rm", "remove"] },
-            { q: "How to create an empty file?", a: "touch", options: ["new", "touch", "create"] },
-            { q: "Command to see the text inside a file?", a: "cat", options: ["cat", "read", "view"] },
-            { q: "How to clear the terminal screen?", a: "clear", options: ["cls", "clean", "clear"] },
-            { q: "How to find out who you are logged in as?", a: "whoami", options: ["whoami", "me", "id"] },
-            { q: "Command to shut down the system?", a: "poweroff", options: ["end", "stop", "poweroff"] }
+            { q: "See files in a folder?", a: "ls", options: ["ls", "dir", "view"] },
+            { q: "Print working directory?", a: "pwd", options: ["path", "pwd", "where"] },
+            { q: "Create a new folder?", a: "mkdir", options: ["new", "mkdir", "md"] },
+            { q: "Change directory?", a: "cd", options: ["go", "mov", "cd"] },
+            { q: "Remove a file?", a: "rm", options: ["del", "rm", "kill"] },
+            { q: "Create empty file?", a: "touch", options: ["new", "touch", "file"] },
+            { q: "View file contents?", a: "cat", options: ["cat", "read", "open"] },
+            { q: "Clear terminal?", a: "clear", options: ["cls", "reset", "clear"] },
+            { q: "Check current user?", a: "whoami", options: ["whoami", "user", "id"] },
+            { q: "Manual for a command?", a: "man", options: ["help", "man", "info"] }
         ];
 
         function startGame() {
             user = document.getElementById('username').value || "Guest";
             document.getElementById('overlay').style.display = 'none';
-            document.getElementById('game-container').style.display = 'block';
+            document.getElementById('content').style.display = 'flex';
+            document.getElementById('game-area').style.display = 'flex';
             document.getElementById('stat-user').innerText = user;
             gameActive = true;
+            showScores();
             nextQuestion();
             main();
         }
 
         function nextQuestion() {
-            if(currentQ >= 10) return endGame();
-            document.getElementById('question-box').innerText = `STEP ${currentQ + 1}: ${missions[currentQ].q}`;
-            
+            if(currentQ >= 10) return endGame("STABLE BUILD COMPLETE");
+            document.getElementById('question-box').innerText = `TASK ${currentQ + 1}: ${missions[currentQ].q}`;
             targets = [];
             let pool = [...missions[currentQ].options].sort(() => 0.5 - Math.random());
             for(let i=0; i<3; i++) {
-                targets.push({
-                    x: Math.floor(Math.random() * (canvas.width/grid)) * grid,
-                    y: Math.floor(Math.random() * (canvas.height/grid)) * grid,
-                    text: pool[i]
-                });
+                targets.push({ x: Math.floor(Math.random() * (canvas.width/grid)) * grid, y: Math.floor(Math.random() * (canvas.height/grid)) * grid, text: pool[i] });
             }
         }
 
         function main() {
             if(!gameActive) return;
-            setTimeout(function onTick() {
-                clearCanvas();
+            setTimeout(() => {
+                ctx.fillStyle = "#0a0a0a";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
                 drawTargets();
                 advanceSnake();
                 drawSnake();
                 main();
             }, 200); // Slower speed
-        }
-
-        function clearCanvas() {
-            ctx.fillStyle = "#0a0a0a";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
         function drawSnake() {
@@ -119,55 +119,54 @@
 
         function advanceSnake() {
             const head = {x: snake[0].x + dx, y: snake[0].y + dy};
-            if(head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) return endGame("CONNECTION TIMEOUT (Wall Hit)");
-
+            if(head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) return endGame("CRASH: HIT FIREWALL");
+            
             snake.unshift(head);
-            let hitIndex = -1;
-            targets.forEach((t, index) => { if(head.x === t.x && head.y === t.y) hitIndex = index; });
-
-            if(hitIndex !== -1) {
-                if(targets[hitIndex].text === missions[currentQ].a) {
-                    score += 10;
-                    document.getElementById('stat-score').innerText = score;
+            let hit = false;
+            targets.forEach(t => {
+                if(head.x === t.x && head.y === t.y) {
+                    hit = true;
+                    if(t.text === missions[currentQ].a) {
+                        score += 10;
+                        document.getElementById('stat-score').innerText = score;
+                    } else {
+                        snake = [{x: head.x, y: head.y}]; // Reset length on wrong answer
+                    }
+                    currentQ++;
+                    nextQuestion();
                 }
-                currentQ++;
-                nextQuestion();
-            } else {
-                snake.pop();
-            }
+            });
+            if(!hit) snake.pop();
         }
 
         function drawTargets() {
             targets.forEach(t => {
-                ctx.fillStyle = "#fcfcfc";
+                ctx.fillStyle = "#fff";
                 ctx.fillRect(t.x, t.y, grid-2, grid-2);
-                ctx.fillStyle = "white";
-                ctx.font = "bold 12px Courier New";
+                ctx.font = "bold 11px Arial";
                 ctx.fillText(t.text, t.x - 10, t.y - 5);
             });
         }
 
-        function endGame(msg = "SESSION ENDED") {
-            gameActive = false;
-            alert(msg + "\nScore: " + score + "%");
-            saveScore(user, score);
-            document.getElementById('game-container').style.display = 'none';
-            document.getElementById('leaderboard').style.display = 'block';
+        function saveScore(n, s) {
+            let scores = JSON.parse(localStorage.getItem('sidebar_scores') || "[]");
+            scores.push({n, s});
+            scores.sort((a,b) => b.s - a.s);
+            localStorage.setItem('sidebar_scores', JSON.stringify(scores.slice(0, 15)));
             showScores();
         }
 
-        function saveScore(n, s) {
-            let scores = JSON.parse(localStorage.getItem('basic_scores') || "[]");
-            scores.push({n, s, d: new Date().toLocaleDateString()});
-            scores.sort((a,b) => b.s - a.s);
-            localStorage.setItem('basic_scores', JSON.stringify(scores.slice(0, 5)));
+        function showScores() {
+            const list = JSON.parse(localStorage.getItem('sidebar_scores') || "[]");
+            document.getElementById('score-list').innerHTML = list.map(i => `
+                <div class="score-entry"><span>${i.n}</span><span>${i.s}%</span></div>
+            `).join('') || "No logs found.";
         }
 
-        function showScores() {
-            const list = JSON.parse(localStorage.getItem('basic_scores') || "[]");
-            document.getElementById('score-list').innerHTML = list.map(i => `
-                <div class="row"><span>${i.n}</span><span>${i.s}%</span></div>
-            `).join('');
+        function endGame(msg) {
+            gameActive = false;
+            alert(msg + "\nScore: " + score + "%");
+            saveScore(user, score);
         }
 
         window.addEventListener("keydown", e => {
