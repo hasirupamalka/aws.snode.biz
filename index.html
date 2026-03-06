@@ -2,215 +2,113 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terminal Puzzle | Cloud Ops</title>
+    <title>Linux Root Challenge | 10 Missions</title>
     <style>
-        :root {
-            --term-bg: #0c0c0c;
-            --term-green: #00ff41;
-            --term-white: #cccccc;
-            --term-red: #ff3e3e;
-        }
-
-        body {
-            background-color: #1a1a1a;
-            color: var(--term-white);
-            font-family: 'Consolas', 'Courier New', monospace;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-        }
-
-        /* Login Overlay */
-        #overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 100;
-        }
-
-        .login-box { border: 1px solid var(--term-green); padding: 30px; text-align: center; }
-        input { background: transparent; border: 1px solid var(--term-green); color: var(--term-green); padding: 10px; margin: 10px; outline: none; }
-        
-        /* Game Layout */
-        .terminal-container {
-            width: 800px;
-            background: var(--term-bg);
-            border-radius: 8px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-            padding: 20px;
-            border: 1px solid #333;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(3, 80px);
-            gap: 10px;
-            margin: 20px 0;
-            padding: 15px;
-            background: #151515;
-            width: fit-content;
-            border: 1px dashed #444;
-        }
-
-        .tile {
-            width: 80px; height: 80px;
-            background: #222;
-            color: var(--term-green);
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; border: 1px solid #333;
-        }
-
-        .empty { background: transparent; border: 1px solid #222; color: transparent; }
-
-        .input-area { display: flex; align-items: center; margin-top: 20px; color: var(--term-green); }
-        #cmd-input {
-            background: transparent; border: none; color: var(--term-green);
-            font-family: inherit; font-size: 1rem; width: 100%; outline: none;
-            margin-left: 10px;
-        }
-
-        .history { height: 150px; overflow-y: auto; font-size: 0.9rem; color: #888; margin-bottom: 10px; }
-        .error { color: var(--term-red); }
-        .success { color: var(--term-green); }
+        :root { --green: #00ff41; --bg: #050505; --warn: #ffb100; --error: #ff3e3e; }
+        body { background: #121212; color: #eee; font-family: 'Consolas', monospace; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .terminal { width: 850px; background: var(--bg); border: 1px solid #333; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        .header { background: #222; padding: 10px; font-size: 0.8rem; color: #888; border-bottom: 1px solid #333; }
+        #output { height: 450px; padding: 20px; overflow-y: auto; white-space: pre-wrap; font-size: 0.95rem; }
+        .input-line { display: flex; padding: 10px 20px 20px; border-top: 1px solid #1a1a1a; }
+        input { background: transparent; border: none; color: var(--green); flex: 1; font-family: inherit; font-size: 1rem; outline: none; margin-left: 10px; }
+        .prompt { color: var(--green); font-weight: bold; }
+        .success { color: var(--green); }
+        .fail { color: var(--error); }
+        .hint { color: var(--warn); font-style: italic; }
+        .progress-bar { width: 850px; height: 10px; background: #222; margin-top: 10px; border-radius: 5px; overflow: hidden; }
+        #progress-fill { height: 100%; width: 0%; background: var(--green); transition: 0.5s; }
     </style>
 </head>
 <body>
 
-    <div id="overlay">
-        <div class="login-box">
-            <p>SSH CONNECTION REQUESTED...</p>
-            <input type="text" id="username" placeholder="enter_username" autofocus>
-            <br>
-            <button onclick="initGame()" style="background: var(--term-green); border:none; padding: 10px 20px; cursor:pointer;">LOGIN</button>
+    <h2 style="color: var(--green)">AWS CLOUD OPS: EMERGENCY RESPONSE</h2>
+    <div class="terminal">
+        <div class="header">SESSION: ssh enzo@prod-instance-01 | PORT: 22</div>
+        <div id="output"></div>
+        <div class="input-line">
+            <span class="prompt">enzo@aws:~$</span>
+            <input type="text" id="cmd-input" autofocus autocomplete="off">
         </div>
     </div>
 
-    <div class="terminal-container">
-        <div class="history" id="history">
-            <div>[SYSTEM] Welcome to the Kernel Debugger.</div>
-            <div>[SYSTEM] The server clusters (1-8) are out of order.</div>
-            <div>[SYSTEM] Use <b>mv [number]</b> to slide a server into the empty slot.</div>
-        </div>
-
-        <div class="grid" id="grid"></div>
-
-        <div class="input-area">
-            <span>enzo@aws-prod:~$</span>
-            <input type="text" id="cmd-input" placeholder="type 'mv 5' or 'help'">
-        </div>
-    </div>
-
-    <div style="margin-top: 20px; width: 800px;">
-        <h3>Top Engineers (Leaderboard)</h3>
-        <div id="leaderboard"></div>
-    </div>
+    <div class="progress-bar"><div id="progress-fill"></div></div>
+    <p id="stats">Missions Completed: 0/10</p>
 
     <script>
-        let user = "";
-        let moves = 0;
-        let tiles = [1, 2, 3, 4, 5, 6, 7, 8, null];
         const input = document.getElementById('cmd-input');
-        const history = document.getElementById('history');
+        const output = document.getElementById('output');
+        const progress = document.getElementById('progress-fill');
+        const stats = document.getElementById('stats');
 
-        function initGame() {
-            user = document.getElementById('username').value || "Root_Enzo";
-            document.getElementById('overlay').style.display = 'none';
-            renderGrid();
-            renderLeaderboard();
-            input.focus();
-        }
+        let currentStep = 0;
+        let score = 0;
+
+        // Pool of 15 questions to ensure variety (10 will be picked randomly)
+        const questionPool = [
+            { q: "A process with PID 404 is hung. Kill it immediately.", a: "kill -9 404" },
+            { q: "The 'backup.sh' script isn't running. Give it execute permissions.", a: "chmod +x backup.sh" },
+            { q: "Check the end of the 'access.log' file to see the latest errors.", a: "tail access.log" },
+            { q: "Create a new directory named 'deploy' in the current folder.", a: "mkdir deploy" },
+            { q: "Search for the word 'CRITICAL' in 'syslog.txt'.", a: "grep CRITICAL syslog.txt" },
+            { q: "The Apache service is stuck. Restart it using systemctl.", a: "systemctl restart apache2" },
+            { q: "Zip the 'logs' folder into a file named 'logs.zip'.", a: "zip -r logs.zip logs" },
+            { q: "You need to see which ports are listening. Use netstat with -tulpn.", a: "netstat -tulpn" },
+            { q: "Change the owner of 'web_root' folder to 'www-data'.", a: "chown www-data web_root" },
+            { q: "Disk is full. Find the size of the '/var/log' directory in human-readable format.", a: "du -sh /var/log" },
+            { q: "Edit 'config.yaml' using the 'vi' editor.", a: "vi config.yaml" },
+            { q: "The server is lagging. Show real-time process monitoring.", a: "top" },
+            { q: "Mount the drive '/dev/sdb1' to '/mnt/data'.", a: "mount /dev/sdb1 /mnt/data" },
+            { q: "Echo the string 'Hello World' and append it to 'note.txt'.", a: "echo 'Hello World' >> note.txt" },
+            { q: "Check your current path in the filesystem.", a: "pwd" }
+        ];
+
+        // Shuffle and pick 10
+        const activeMissions = questionPool.sort(() => 0.5 - Math.random()).slice(0, 10);
 
         function log(msg, type = '') {
             const div = document.createElement('div');
             div.className = type;
-            div.innerHTML = `> ${msg}`;
-            history.appendChild(div);
-            history.scrollTop = history.scrollHeight;
+            div.innerHTML = msg;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
         }
 
-        function renderGrid() {
-            const grid = document.getElementById('grid');
-            grid.innerHTML = '';
-            tiles.forEach(t => {
-                const div = document.createElement('div');
-                div.className = t ? 'tile' : 'tile empty';
-                div.innerText = t ? `SRV-${t}` : '';
-                grid.appendChild(div);
-            });
+        function updateProgress() {
+            const percent = (currentStep / 10) * 100;
+            progress.style.width = percent + "%";
+            stats.innerText = `Missions Completed: ${currentStep}/10`;
         }
 
-        function moveTile(num) {
-            const idx = tiles.indexOf(parseInt(num));
-            const emptyIdx = tiles.indexOf(null);
-            
-            if (idx === -1) return log(`Error: Server SRV-${num} not found.`, 'error');
-
-            const isAdj = [idx-1, idx+1, idx-3, idx+3].includes(emptyIdx);
-            const wrap = (idx % 3 === 0 && emptyIdx === idx - 1) || (idx % 3 === 2 && emptyIdx === idx + 1);
-
-            if (isAdj && !wrap) {
-                [tiles[idx], tiles[emptyIdx]] = [tiles[emptyIdx], tiles[idx]];
-                moves++;
-                renderGrid();
-                log(`Moved SRV-${num} successfully.`, 'success');
-                checkWin();
-            } else {
-                log(`Error: SRV-${num} is locked. No adjacent space.`, 'error');
-            }
-        }
-
-        function checkWin() {
-            if (tiles.slice(0, 8).every((t, i) => t === i + 1)) {
-                log(`CRITICAL SUCCESS! All servers aligned in ${moves} moves.`, 'success');
-                saveScore();
-            }
-        }
-
-        function saveScore() {
-            let scores = JSON.parse(localStorage.getItem('linux_puzzle') || "[]");
-            scores.push({ name: user, moves: moves });
-            scores.sort((a, b) => a.moves - b.moves);
-            localStorage.setItem('linux_puzzle', JSON.stringify(scores.slice(0, 5)));
-            renderLeaderboard();
-        }
-
-        function renderLeaderboard() {
-            const scores = JSON.parse(localStorage.getItem('linux_puzzle') || "[]");
-            document.getElementById('leaderboard').innerHTML = scores.map(s => 
-                `<div>${s.name}: ${s.moves} operations</div>`).join('') || "No records found.";
-        }
+        // Start
+        log("SYSTEM BOOTED. Welcome Enzo.");
+        log("10 Critical Issues detected on Lankacom Cloud Cluster.");
+        log("-------------------------------------------------------");
+        log(`MISSION 1: ${activeMissions[0].q}`, 'hint');
 
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
-                const val = input.value.trim().toLowerCase();
+                const val = input.value.trim();
                 input.value = '';
-                
-                if (val === 'help') {
-                    log("Commands: mv [n], clear, restart, uptime");
-                } else if (val.startsWith('mv ')) {
-                    moveTile(val.split(' ')[1]);
-                } else if (val === 'clear') {
-                    history.innerHTML = '';
-                } else if (val === 'uptime') {
-                    log(`Session active. Moves made: ${moves}`);
-                } else if (val === 'restart') {
-                    location.reload();
+                log(`<span class="prompt">enzo@aws:~$</span> ${val}`);
+
+                if (val === activeMissions[currentStep].a) {
+                    log("✓ COMMAND ACCEPTED. Access Granted.", "success");
+                    currentStep++;
+                    updateProgress();
+
+                    if (currentStep < 10) {
+                        log(`\nMISSION ${currentStep + 1}: ${activeMissions[currentStep].q}`, 'hint');
+                    } else {
+                        log("\n========================================");
+                        log("CONGRATULATIONS ENGINEER! SERVER STABILIZED.", "success");
+                        log("Your AWS Infrastructure is now healthy.", "success");
+                    }
                 } else {
-                    log(`-bash: ${val}: command not found`, 'error');
+                    log("✗ ERROR: Command failed or invalid syntax.", "fail");
+                    log(`HINT: Try checking the exact command requirements.`, "hint");
                 }
             }
         });
-
-        // Simple shuffle
-        for(let i=0; i<50; i++) {
-            const empty = tiles.indexOf(null);
-            const pos = [empty-1, empty+1, empty-3, empty+3].filter(x => x>=0 && x<9);
-            const rand = pos[Math.floor(Math.random()*pos.length)];
-            [tiles[empty], tiles[rand]] = [tiles[rand], tiles[empty]];
-        }
     </script>
 </body>
 </html>
