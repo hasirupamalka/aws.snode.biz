@@ -3,152 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Control Panel | Enzo</title>
+    <title>Cloud Engineer Puzzle</title>
     <style>
         :root {
-            --primary: #00ff41; /* Classic Hacker Green */
-            --bg: #0a0b10;
-            --glass: rgba(255, 255, 255, 0.1);
+            --primary: #00d2ff;
+            --secondary: #3a7bd5;
+            --bg: #0f172a;
+            --tile: #1e293b;
         }
 
         body {
-            background-color: var(--bg);
-            background-image: radial-gradient(circle at center, #1a1c2c 0%, #0a0b10 100%);
+            background: var(--bg);
             color: white;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Segoe UI', sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             height: 100vh;
             margin: 0;
-            overflow: hidden;
         }
 
-        .dashboard {
-            background: var(--glass);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 2rem;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 0 40px rgba(0,0,0,0.5);
-            width: 350px;
-        }
+        h1 { margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
 
-        h1 { font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; }
-
-        .status-grid {
+        .game-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin: 20px 0;
+            grid-template-columns: repeat(4, 80px);
+            grid-template-rows: repeat(4, 80px);
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
-        .stat-box {
-            background: rgba(0,0,0,0.3);
-            padding: 10px;
-            border-radius: 10px;
-            border-bottom: 2px solid var(--primary);
+        .tile {
+            width: 80px;
+            height: 80px;
+            background: var(--tile);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s, background 0.2s, box-shadow 0.2s;
+            border-bottom: 4px solid rgba(0,0,0,0.3);
         }
 
-        .stat-label { font-size: 0.7rem; color: #888; }
-        .stat-value { font-size: 1.1rem; font-weight: bold; color: var(--primary); }
+        .tile:hover {
+            background: #334155;
+            box-shadow: 0 0 15px var(--primary);
+        }
 
-        .btn-group { display: flex; flex-direction: column; gap: 10px; }
+        .tile.empty {
+            background: transparent;
+            cursor: default;
+            border: none;
+            box-shadow: none;
+        }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
 
         button {
-            padding: 12px;
+            padding: 10px 25px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
             border: none;
+            color: white;
+            font-weight: bold;
             border-radius: 5px;
             cursor: pointer;
-            font-weight: bold;
-            font-family: inherit;
-            transition: 0.3s;
+            transition: opacity 0.2s;
         }
 
-        .btn-deploy { background: var(--primary); color: black; }
-        .btn-deploy:hover { box-shadow: 0 0 15px var(--primary); }
+        button:hover { opacity: 0.8; }
 
-        .btn-danger { background: #ff4b2b; color: white; }
-        .btn-danger:active { transform: scale(0.95); }
-
-        #console-output {
-            margin-top: 15px;
-            font-size: 0.8rem;
-            color: #aaa;
-            height: 40px;
-            border-top: 1px solid #333;
-            padding-top: 10px;
-        }
-
-        /* Animation for the "Scanning" look */
-        .scanline {
-            width: 100%;
-            height: 2px;
-            background: rgba(0, 255, 65, 0.1);
-            position: absolute;
-            top: 0;
-            animation: scan 4s linear infinite;
-        }
-
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
+        #message { font-weight: bold; color: #4ade80; height: 20px; }
     </style>
 </head>
 <body>
-    <div class="scanline"></div>
 
-    <div class="dashboard">
-        <h1>Cloud Terminal</h1>
-        <p style="font-size: 0.8rem; color: #00ff41;">> System: Stable</p>
+    <h1>Logic Puzzle</h1>
+    <div id="message"></div>
+    <div class="game-container" id="grid"></div>
 
-        <div class="status-grid">
-            <div class="stat-box">
-                <div class="stat-label">CPU LOAD</div>
-                <div class="stat-value" id="cpu">12%</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">RAM USAGE</div>
-                <div class="stat-value" id="ram">4.2GB</div>
-            </div>
-        </div>
-
-        <div class="btn-group">
-            <button class="btn-deploy" onclick="runDiagnostic()">RUN DIAGNOSTIC</button>
-            <button class="btn-danger" onclick="selfDestruct()">SELF-DESTRUCT</button>
-        </div>
-
-        <div id="console-output">Awaiting user input...</div>
+    <div class="controls">
+        <div>Moves: <span id="move-count">0</span></div>
+        <button onclick="shuffleGame()">Reset System</button>
     </div>
 
     <script>
-        function runDiagnostic() {
-            const out = document.getElementById('console-output');
-            out.innerText = "Scanning AWS S3 Buckets...";
-            
-            setTimeout(() => {
-                document.getElementById('cpu').innerText = Math.floor(Math.random() * 99) + "%";
-                document.getElementById('ram').innerText = (Math.random() * 16).toFixed(1) + "GB";
-                out.innerText = "All systems green. Optimization complete.";
-            }, 1500);
+        const gridElement = document.getElementById('grid');
+        const moveDisplay = document.getElementById('move-count');
+        const message = document.getElementById('message');
+        
+        let tiles = [...Array(15).keys()].map(i => i + 1);
+        tiles.push(null); // The empty space
+        let moves = 0;
+
+        function createBoard() {
+            gridElement.innerHTML = '';
+            tiles.forEach((tile, index) => {
+                const tileDiv = document.createElement('div');
+                tileDiv.classList.add('tile');
+                if (tile === null) {
+                    tileDiv.classList.add('empty');
+                    tileDiv.innerText = '';
+                } else {
+                    tileDiv.innerText = tile;
+                    tileDiv.addEventListener('click', () => moveTile(index));
+                }
+                gridElement.appendChild(tileDiv);
+            });
         }
 
-        function selfDestruct() {
-            if(confirm("Are you sure? This will (not really) delete the internet.")) {
-                document.body.style.backgroundColor = "red";
-                document.body.innerHTML = "<h1 style='color:white; text-align:center; width:100%; margin-top:20%'>CRITICAL ERROR: KERNEL PANIC</h1>";
-                setTimeout(() => location.reload(), 3000);
+        function moveTile(index) {
+            const emptyIndex = tiles.indexOf(null);
+            const validMoves = [index - 1, index + 1, index - 4, index + 4];
+
+            // Check if move is valid (adjacent and not wrapping rows)
+            const isAdjacent = validMoves.includes(emptyIndex);
+            const isSameRow = Math.floor(index / 4) === Math.floor(emptyIndex / 4);
+            const isSameCol = index % 4 === emptyIndex % 4;
+
+            if (isAdjacent && (isSameRow || isSameCol)) {
+                swap(index, emptyIndex);
+                moves++;
+                moveDisplay.innerText = moves;
+                createBoard();
+                checkWin();
             }
         }
 
-        // Randomly jitter the CPU load for "realism"
-        setInterval(() => {
-            let cpu = document.getElementById('cpu');
-            let current = parseInt(cpu.innerText);
-            cpu.innerText = (current + (Math.random() > 0.5 ? 1 : -1)) + "%";
-        }, 2000);
+        function swap(idx1, idx2) {
+            const temp = tiles[idx1];
+            tiles[idx1] = tiles[idx2];
+            tiles[idx2] = temp;
+        }
+
+        function shuffleGame() {
+            // Shuffle by simulating random valid moves so the puzzle is always solvable
+            for (let i = 0; i < 200; i++) {
+                const emptyIndex = tiles.indexOf(null);
+                const neighbors = [];
+                if (emptyIndex % 4 > 0) neighbors.push(emptyIndex - 1);
+                if (emptyIndex % 4 < 3) neighbors.push(emptyIndex + 1);
+                if (emptyIndex > 3) neighbors.push(emptyIndex - 4);
+                if (emptyIndex < 12) neighbors.push(emptyIndex + 4);
+                
+                const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+                swap(emptyIndex, randomNeighbor);
+            }
+            moves = 0;
+            moveDisplay.innerText = moves;
+            message.innerText = "";
+            createBoard();
+        }
+
+        function checkWin() {
+            const winState = [...Array(15).keys()].map(i => i + 1);
+            winState.push(null);
+            if (JSON.stringify(tiles) === JSON.stringify(winState)) {
+                message.innerText = "SYSTEM OPTIMIZED: YOU WIN!";
+            }
+        }
+
+        shuffleGame(); // Initialize
     </script>
 </body>
 </html>
