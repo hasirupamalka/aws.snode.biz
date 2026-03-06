@@ -2,37 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Linux Basics | Competitive Trace</title>
+    <title>Linux Trace | Persistence Mode</title>
     <style>
-        :root { --green: #00ff41; --bg: #0a0a0a; --panel: #111; }
+        :root { --green: #00ff41; --bg: #0a0a0a; --gray: #222; }
         body { background: #1a1a1b; color: white; font-family: 'Consolas', monospace; margin: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
         
-        /* Layout */
-        #game-area { display: none; flex-direction: column; align-items: center; }
+        /* Layout Wrapper */
+        .main-container { display: none; gap: 20px; padding: 20px; }
+        
+        /* Game Section */
+        #game-area { display: flex; flex-direction: column; align-items: center; }
         canvas { background: var(--bg); border: 2px solid #333; }
-        #question-box { width: 600px; background: #222; padding: 15px; border-radius: 5px; margin-bottom: 10px; text-align: center; border-left: 5px solid var(--green); }
+        #question-box { width: 600px; background: var(--gray); padding: 15px; border-radius: 5px; margin-bottom: 10px; text-align: center; border-left: 5px solid var(--green); }
         
-        /* Login Panel with Scores */
+        /* Global Sidebar (Inside Game) */
+        .sidebar { width: 250px; background: #111; border: 1px solid #333; padding: 20px; border-radius: 8px; height: 465px; display: flex; flex-direction: column; }
+        .sidebar h3 { color: var(--green); margin: 0 0 10px 0; font-size: 0.9rem; text-transform: uppercase; border-bottom: 1px solid #333; padding-bottom: 5px; }
+
+        /* Login Overlay */
         #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.98); display: flex; justify-content: center; align-items: center; z-index: 100; }
-        .login-box { 
-            border: 2px solid var(--green); 
-            padding: 30px; 
-            background: #000; 
-            width: 450px; 
-            text-align: center;
-            box-shadow: 0 0 30px rgba(0, 255, 65, 0.2);
-        }
-        input { background: transparent; border: 1px solid var(--green); color: var(--green); padding: 10px; margin: 15px 0; width: 220px; text-align: center; outline: none; }
+        .login-box { border: 2px solid var(--green); padding: 30px; background: #000; width: 400px; text-align: center; box-shadow: 0 0 40px rgba(0, 255, 65, 0.1); }
+        input { background: transparent; border: 1px solid var(--green); color: var(--green); padding: 12px; margin: 15px 0; width: 250px; text-align: center; outline: none; font-family: inherit; }
         
-        .login-leaderboard {
-            margin-top: 25px;
-            padding-top: 15px;
-            border-top: 1px solid #333;
-            text-align: left;
-        }
-        .login-leaderboard h3 { font-size: 0.9rem; color: var(--green); margin-bottom: 10px; text-transform: uppercase; }
-        .score-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 5px 0; border-bottom: 1px solid #222; }
-        .refresh-tag { font-size: 0.6rem; color: #444; margin-top: 5px; font-style: italic; }
+        /* Leaderboard Styling (Shared) */
+        .score-list { flex-grow: 1; overflow-y: auto; text-align: left; }
+        .score-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 6px 0; border-bottom: 1px solid #222; }
+        .score-row span:last-child { color: var(--green); font-weight: bold; }
+        .sync-tag { font-size: 0.6rem; color: #444; margin-top: 10px; font-style: italic; text-align: center; }
 
         .ui-panel { width: 600px; display: flex; justify-content: space-between; color: var(--green); margin-bottom: 5px; font-size: 0.9rem; }
     </style>
@@ -41,28 +37,34 @@
 
     <div id="overlay">
         <div class="login-box">
-            <h1 style="color: white; margin:0; font-size: 1.5rem;">LINUX TRACE LOGIN</h1>
-            <p style="color: #666; font-size: 0.8rem;">Ready for 10 system questions?</p>
-            
-            <input type="text" id="username" placeholder="ENTER_NAME" maxlength="12" autofocus>
+            <h1 style="color: white; margin:0; font-size: 1.4rem;">SYSTEM IDENTITY</h1>
+            <input type="text" id="username" placeholder="IAM_USER_NAME" maxlength="12" autofocus>
             <br>
-            <button onclick="startGame()" style="background: var(--green); border:none; padding: 10px 40px; cursor:pointer; font-weight:bold; color: black;">INITIALIZE</button>
+            <button onclick="startGame()" style="background: var(--green); border:none; padding: 12px 50px; cursor:pointer; font-weight:bold; color: black; text-transform: uppercase;">Boot Shell</button>
 
-            <div class="login-leaderboard">
-                <h3>System Hall of Fame</h3>
-                <div id="login-score-list">Loading scores...</div>
-                <div class="refresh-tag">Next sync in <span id="sync-timer">10</span>s</div>
+            <div style="margin-top: 30px; text-align: left; border-top: 1px solid #333; padding-top: 15px;">
+                <h3 style="font-size: 0.8rem; color: var(--green); margin-bottom: 10px;">ALL USERS LOGS</h3>
+                <div id="login-scores" class="score-list"></div>
             </div>
         </div>
     </div>
 
-    <div id="game-area">
-        <div class="ui-panel">
-            <span>Engineer: <span id="stat-user"></span></span>
-            <span>Accuracy: <span id="stat-score">0</span>%</span>
+    <div class="main-container" id="game-ui">
+        <div id="game-area">
+            <div class="ui-panel">
+                <span>User: <span id="stat-user"></span></span>
+                <span>Uptime: <span id="stat-score">0</span>%</span>
+            </div>
+            <div id="question-box">Establishing Connection...</div>
+            <canvas id="gameCanvas" width="600" height="400"></canvas>
         </div>
-        <div id="question-box">Establishing Connection...</div>
-        <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+        <div class="sidebar">
+            <h3>Global Scores</h3>
+            <div id="sidebar-scores" class="score-list"></div>
+            <div class="sync-tag">Next Sync: <span class="sync-clock">10</span>s</div>
+            <button onclick="location.reload()" style="margin-top:15px; background: #222; color: #888; border: none; padding: 5px; cursor: pointer; font-size: 0.7rem;">Exit Session</button>
+        </div>
     </div>
 
     <script>
@@ -71,7 +73,7 @@
         const grid = 20;
         let snake = [{x: 160, y: 160}, {x: 140, y: 160}];
         let dx = grid, dy = 0, score = 0, currentQ = 0, user = "", targets = [], gameActive = false;
-        let syncSeconds = 10;
+        let syncCounter = 10;
 
         const missions = [
             { q: "See files in a folder?", a: "ls", options: ["ls", "dir", "view"] },
@@ -86,46 +88,43 @@
             { q: "Manual for a command?", a: "man", options: ["help", "man", "info"] }
         ];
 
-        // --- SCORES & SYNC LOGIC ---
-        function updateLeaderboard() {
-            const list = JSON.parse(localStorage.getItem('sidebar_scores') || "[]");
-            const container = document.getElementById('login-score-list');
-            if (list.length === 0) {
-                container.innerHTML = "<div style='color:#444'>No records found.</div>";
-            } else {
-                container.innerHTML = list.map(i => `
-                    <div class="score-row"><span>${i.n}</span><span>${i.s}%</span></div>
-                `).join('');
-            }
+        // --- DATA SYNC LOGIC ---
+        function refreshData() {
+            const data = JSON.parse(localStorage.getItem('linux_master_scores') || "[]");
+            const html = data.length ? data.map(i => `
+                <div class="score-row"><span>${i.n}</span><span>${i.s}%</span></div>
+            `).join('') : "<div style='color:#444'>No user data.</div>";
+            
+            document.getElementById('login-scores').innerHTML = html;
+            document.getElementById('sidebar-scores').innerHTML = html;
         }
 
-        // Auto-refresh timer
+        // 10s Background Auto-Refresh
         setInterval(() => {
-            syncSeconds--;
-            if (syncSeconds < 0) {
-                updateLeaderboard();
-                syncSeconds = 10;
+            syncCounter--;
+            if (syncCounter < 0) {
+                refreshData();
+                syncCounter = 10;
             }
-            document.getElementById('sync-timer').innerText = syncSeconds;
+            document.querySelectorAll('.sync-clock').forEach(el => el.innerText = syncCounter);
         }, 1000);
 
-        // Run once on load
-        updateLeaderboard();
+        refreshData(); // Initial load
 
         function startGame() {
             user = document.getElementById('username').value.trim() || "Guest";
             document.getElementById('overlay').style.display = 'none';
-            document.getElementById('game-area').style.display = 'flex';
+            document.getElementById('game-ui').style.display = 'flex';
             document.getElementById('stat-user').innerText = user;
             gameActive = true;
             nextQuestion();
             main();
         }
 
-        // --- GAME LOGIC ---
+        // --- GAME MECHANICS ---
         function nextQuestion() {
-            if(currentQ >= 10) return endGame("SYSTEM PATCHED");
-            document.getElementById('question-box').innerText = `TASK ${currentQ + 1}: ${missions[currentQ].q}`;
+            if(currentQ >= 10) return endGame("KERNEL STABILIZED");
+            document.getElementById('question-box').innerText = `STEP ${currentQ + 1}: ${missions[currentQ].q}`;
             targets = [];
             let pool = [...missions[currentQ].options].sort(() => 0.5 - Math.random());
             for(let i=0; i<3; i++) {
@@ -152,7 +151,7 @@
 
         function advanceSnake() {
             const head = {x: snake[0].x + dx, y: snake[0].y + dy};
-            if(head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) return endGame("FIREWALL COLLISION");
+            if(head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) return endGame("SEGMENTATION FAULT (Wall)");
             
             snake.unshift(head);
             let hit = false;
@@ -163,7 +162,7 @@
                         score += 10;
                         document.getElementById('stat-score').innerText = score;
                     } else {
-                        snake = [{x: head.x, y: head.y}];
+                        snake = [{x: head.x, y: head.y}]; // Wrong answer penalty
                     }
                     currentQ++;
                     nextQuestion();
@@ -182,18 +181,18 @@
         }
 
         function saveScore(n, s) {
-            let scores = JSON.parse(localStorage.getItem('sidebar_scores') || "[]");
-            scores.push({n, s});
-            scores.sort((a,b) => b.s - a.s);
-            localStorage.setItem('sidebar_scores', JSON.stringify(scores.slice(0, 5)));
-            updateLeaderboard(); // Update immediately too
+            let scores = JSON.parse(localStorage.getItem('linux_master_scores') || "[]");
+            scores.push({n, s, t: new Date().getTime()});
+            scores.sort((a,b) => b.s - a.s); // Sort by highest percentage
+            localStorage.setItem('linux_master_scores', JSON.stringify(scores.slice(0, 10)));
+            refreshData();
         }
 
         function endGame(msg) {
             gameActive = false;
-            alert(msg + "\nFinal Score: " + score + "%");
+            alert(msg + "\nFinal Knowledge Score: " + score + "%");
             saveScore(user, score);
-            location.reload(); // Go back to login screen to see update
+            location.reload(); // Returns to logging page with updated scores
         }
 
         window.addEventListener("keydown", e => {
