@@ -2,67 +2,93 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Linux Root Challenge | 10 Missions</title>
+    <title>Linux Root Challenge | Lankacom Edition</title>
     <style>
         :root { --green: #00ff41; --bg: #050505; --warn: #ffb100; --error: #ff3e3e; }
-        body { background: #121212; color: #eee; font-family: 'Consolas', monospace; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .terminal { width: 850px; background: var(--bg); border: 1px solid #333; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-        .header { background: #222; padding: 10px; font-size: 0.8rem; color: #888; border-bottom: 1px solid #333; }
-        #output { height: 450px; padding: 20px; overflow-y: auto; white-space: pre-wrap; font-size: 0.95rem; }
+        body { background: #121212; color: #eee; font-family: 'Consolas', monospace; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; min-height: 100vh; }
+        
+        /* Login Styles */
+        #login-screen { position: fixed; inset: 0; background: rgba(10,10,10,0.95); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .login-box { border: 1px solid var(--green); padding: 40px; text-align: center; background: #000; box-shadow: 0 0 20px var(--green); }
+        .login-box input { background: transparent; border: 1px solid var(--green); color: var(--green); padding: 10px; margin: 20px 0; width: 250px; text-align: center; outline: none; }
+        
+        /* Terminal Styles */
+        .terminal { width: 850px; background: var(--bg); border: 1px solid #333; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: none; }
+        .header { background: #222; padding: 10px; font-size: 0.8rem; color: #888; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
+        #output { height: 400px; padding: 20px; overflow-y: auto; white-space: pre-wrap; font-size: 0.95rem; }
         .input-line { display: flex; padding: 10px 20px 20px; border-top: 1px solid #1a1a1a; }
-        input { background: transparent; border: none; color: var(--green); flex: 1; font-family: inherit; font-size: 1rem; outline: none; margin-left: 10px; }
+        #cmd-input { background: transparent; border: none; color: var(--green); flex: 1; font-family: inherit; font-size: 1rem; outline: none; margin-left: 10px; }
+        
         .prompt { color: var(--green); font-weight: bold; }
         .success { color: var(--green); }
         .fail { color: var(--error); }
         .hint { color: var(--warn); font-style: italic; }
-        .progress-bar { width: 850px; height: 10px; background: #222; margin-top: 10px; border-radius: 5px; overflow: hidden; }
+        
+        /* Stats & Leaderboard */
+        .progress-bar { width: 850px; height: 10px; background: #222; margin-top: 20px; border-radius: 5px; overflow: hidden; display: none; }
         #progress-fill { height: 100%; width: 0%; background: var(--green); transition: 0.5s; }
+        
+        #leaderboard { margin-top: 30px; width: 850px; border-top: 1px solid #444; padding-top: 15px; display: none; }
+        .score-entry { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #222; font-size: 0.9rem; }
+        .score-entry:first-child { color: var(--green); font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2 style="color: var(--green)">AWS CLOUD OPS: EMERGENCY RESPONSE</h2>
-    <div class="terminal">
-        <div class="header">SESSION: ssh enzo@prod-instance-01 | PORT: 22</div>
-        <div id="output"></div>
-        <div class="input-line">
-            <span class="prompt">enzo@aws:~$</span>
-            <input type="text" id="cmd-input" autofocus autocomplete="off">
+    <div id="login-screen">
+        <div class="login-box">
+            <h1 style="color: var(--green); margin:0;">SYSTEM AUTHENTICATION</h1>
+            <p style="color: #666;">Establishing SSH Connection to Lankacom Cluster...</p>
+            <input type="text" id="user-handle" placeholder="ENTER_USERNAME" maxlength="15" autofocus>
+            <br>
+            <button onclick="bootSystem()" style="background: var(--green); border:none; padding: 10px 30px; cursor:pointer; font-weight:bold;">INITIALIZE</button>
         </div>
     </div>
 
-    <div class="progress-bar"><div id="progress-fill"></div></div>
-    <p id="stats">Missions Completed: 0/10</p>
+    <div class="terminal" id="term-ui">
+        <div class="header">
+            <span id="term-title">SSH: enzo@prod-instance</span>
+            <span id="timer">Time: 0s</span>
+        </div>
+        <div id="output"></div>
+        <div class="input-line">
+            <span class="prompt" id="user-prompt">root@aws:~$</span>
+            <input type="text" id="cmd-input" autocomplete="off">
+        </div>
+    </div>
+
+    <div class="progress-bar" id="progress-container"><div id="progress-fill"></div></div>
+
+    <div id="leaderboard">
+        <h3 style="color: var(--green);">TOP SYSTEM ENGINEERS (FASTEST REPAIRS)</h3>
+        <div id="score-list"></div>
+        <button onclick="location.reload()" style="margin-top:20px; background:#333; color:white; border:none; padding:5px 15px; cursor:pointer;">New Deployment</button>
+    </div>
 
     <script>
         const input = document.getElementById('cmd-input');
         const output = document.getElementById('output');
         const progress = document.getElementById('progress-fill');
-        const stats = document.getElementById('stats');
-
+        
+        let currentUser = "";
         let currentStep = 0;
-        let score = 0;
+        let startTime, timerInterval;
+        let missionComplete = false;
 
-        // Pool of 15 questions to ensure variety (10 will be picked randomly)
         const questionPool = [
-            { q: "A process with PID 404 is hung. Kill it immediately.", a: "kill -9 404" },
-            { q: "The 'backup.sh' script isn't running. Give it execute permissions.", a: "chmod +x backup.sh" },
-            { q: "Check the end of the 'access.log' file to see the latest errors.", a: "tail access.log" },
-            { q: "Create a new directory named 'deploy' in the current folder.", a: "mkdir deploy" },
-            { q: "Search for the word 'CRITICAL' in 'syslog.txt'.", a: "grep CRITICAL syslog.txt" },
-            { q: "The Apache service is stuck. Restart it using systemctl.", a: "systemctl restart apache2" },
-            { q: "Zip the 'logs' folder into a file named 'logs.zip'.", a: "zip -r logs.zip logs" },
-            { q: "You need to see which ports are listening. Use netstat with -tulpn.", a: "netstat -tulpn" },
-            { q: "Change the owner of 'web_root' folder to 'www-data'.", a: "chown www-data web_root" },
-            { q: "Disk is full. Find the size of the '/var/log' directory in human-readable format.", a: "du -sh /var/log" },
-            { q: "Edit 'config.yaml' using the 'vi' editor.", a: "vi config.yaml" },
-            { q: "The server is lagging. Show real-time process monitoring.", a: "top" },
-            { q: "Mount the drive '/dev/sdb1' to '/mnt/data'.", a: "mount /dev/sdb1 /mnt/data" },
-            { q: "Echo the string 'Hello World' and append it to 'note.txt'.", a: "echo 'Hello World' >> note.txt" },
-            { q: "Check your current path in the filesystem.", a: "pwd" }
+            { q: "PID 999 is consuming 100% CPU. Kill it.", a: "kill -9 999" },
+            { q: "Give 'deploy.sh' full permissions (777).", a: "chmod 777 deploy.sh" },
+            { q: "Show the last 10 lines of 'syslog'.", a: "tail syslog" },
+            { q: "Create a directory called 'aws_configs'.", a: "mkdir aws_configs" },
+            { q: "Find the string 'ERROR' in 'app.log'.", a: "grep ERROR app.log" },
+            { q: "Restart the SSH service.", a: "systemctl restart ssh" },
+            { q: "Move 'data.txt' into the '/tmp' folder.", a: "mv data.txt /tmp" },
+            { q: "Check disk usage in human-readable format.", a: "df -h" },
+            { q: "Display all running processes.", a: "ps aux" },
+            { q: "Update the server package list.", a: "apt update" }
         ];
 
-        // Shuffle and pick 10
+        // Pick 10 random
         const activeMissions = questionPool.sort(() => 0.5 - Math.random()).slice(0, 10);
 
         function log(msg, type = '') {
@@ -73,42 +99,83 @@
             output.scrollTop = output.scrollHeight;
         }
 
-        function updateProgress() {
-            const percent = (currentStep / 10) * 100;
-            progress.style.width = percent + "%";
-            stats.innerText = `Missions Completed: ${currentStep}/10`;
+        function bootSystem() {
+            const name = document.getElementById('user-handle').value.trim();
+            if(!name) return alert("Identify yourself, Engineer!");
+            
+            currentUser = name;
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('term-ui').style.display = 'block';
+            document.getElementById('progress-container').style.display = 'block';
+            document.getElementById('user-prompt').innerText = `${currentUser.toLowerCase()}@aws:~$`;
+            document.getElementById('term-title').innerText = `SSH: ${currentUser.toLowerCase()}@prod-instance`;
+            
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                document.getElementById('timer').innerText = `Time: ${elapsed}s`;
+            }, 1000);
+
+            log(`WELCOME ${currentUser.toUpperCase()}. STARTING 10-STEP SYSTEM REPAIR...`);
+            log("------------------------------------------------------------------");
+            log(`MISSION 1: ${activeMissions[0].q}`, 'hint');
+            input.focus();
         }
 
-        // Start
-        log("SYSTEM BOOTED. Welcome Enzo.");
-        log("10 Critical Issues detected on Lankacom Cloud Cluster.");
-        log("-------------------------------------------------------");
-        log(`MISSION 1: ${activeMissions[0].q}`, 'hint');
-
         input.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' && !missionComplete) {
                 const val = input.value.trim();
                 input.value = '';
-                log(`<span class="prompt">enzo@aws:~$</span> ${val}`);
+                log(`<span class="prompt">${currentUser.toLowerCase()}@aws:~$</span> ${val}`);
 
                 if (val === activeMissions[currentStep].a) {
-                    log("✓ COMMAND ACCEPTED. Access Granted.", "success");
+                    log("✓ CMD OK.", "success");
                     currentStep++;
-                    updateProgress();
+                    progress.style.width = (currentStep / 10) * 100 + "%";
 
                     if (currentStep < 10) {
-                        log(`\nMISSION ${currentStep + 1}: ${activeMissions[currentStep].q}`, 'hint');
+                        log(`MISSION ${currentStep + 1}: ${activeMissions[currentStep].q}`, 'hint');
                     } else {
-                        log("\n========================================");
-                        log("CONGRATULATIONS ENGINEER! SERVER STABILIZED.", "success");
-                        log("Your AWS Infrastructure is now healthy.", "success");
+                        finishChallenge();
                     }
                 } else {
-                    log("✗ ERROR: Command failed or invalid syntax.", "fail");
-                    log(`HINT: Try checking the exact command requirements.`, "hint");
+                    log("✗ COMMAND REJECTED.", "fail");
                 }
             }
         });
+
+        function finishChallenge() {
+            missionComplete = true;
+            clearInterval(timerInterval);
+            const finalTime = Math.floor((Date.now() - startTime) / 1000);
+            
+            log("\n========================================");
+            log(`CONGRATULATIONS ${currentUser}! ALL MISSIONS COMPLETE.`, "success");
+            log(`TOTAL REPAIR TIME: ${finalTime} SECONDS.`, "success");
+            
+            saveScore(currentUser, finalTime);
+            document.getElementById('leaderboard').style.display = 'block';
+            showLeaderboard();
+        }
+
+        function saveScore(name, time) {
+            let scores = JSON.parse(localStorage.getItem('linux_scores') || "[]");
+            scores.push({ name, time, date: new Date().toLocaleDateString() });
+            scores.sort((a, b) => a.time - b.time);
+            localStorage.setItem('linux_scores', JSON.stringify(scores.slice(0, 8)));
+        }
+
+        function showLeaderboard() {
+            const scores = JSON.parse(localStorage.getItem('linux_scores') || "[]");
+            const list = document.getElementById('score-list');
+            list.innerHTML = scores.map((s, i) => `
+                <div class="score-entry">
+                    <span>${i+1}. ${s.name}</span>
+                    <span>${s.time} seconds</span>
+                    <span style="color: #444;">${s.date}</span>
+                </div>
+            `).join('') || "No records yet.";
+        }
     </script>
 </body>
 </html>
