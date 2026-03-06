@@ -3,181 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Engineer Puzzle</title>
+    <title>Cloud Chaos: The Puzzle</title>
     <style>
         :root {
-            --primary: #00d2ff;
-            --secondary: #3a7bd5;
-            --bg: #0f172a;
-            --tile: #1e293b;
+            --bg: #050505;
+            --accent: #ff0055;
+            --secondary: #00f2ff;
+            --glass: rgba(255, 255, 255, 0.1);
         }
 
         body {
             background: var(--bg);
             color: white;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Courier New', monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
         }
 
-        h1 { margin-bottom: 10px; text-transform: uppercase; letter-spacing: 2px; }
+        /* Login Overlay */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
 
-        .game-container {
+        .login-box {
+            background: #111;
+            padding: 40px;
+            border: 2px solid var(--accent);
+            text-align: center;
+            border-radius: 10px;
+        }
+
+        input {
+            padding: 10px;
+            background: #222;
+            border: 1px solid var(--secondary);
+            color: white;
+            margin-bottom: 20px;
+            width: 200px;
+            text-align: center;
+        }
+
+        /* Game UI */
+        .game-wrapper { display: none; text-align: center; }
+
+        .grid {
             display: grid;
-            grid-template-columns: repeat(4, 80px);
-            grid-template-rows: repeat(4, 80px);
+            grid-template-columns: repeat(3, 100px);
+            grid-template-rows: repeat(3, 100px);
             gap: 10px;
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--glass);
             padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            border: 1px solid var(--secondary);
         }
 
         .tile {
-            width: 80px;
-            height: 80px;
-            background: var(--tile);
-            color: var(--primary);
+            width: 100px; height: 100px;
+            background: #1a1a1a;
+            color: var(--secondary);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
-            border-radius: 8px;
             cursor: pointer;
-            user-select: none;
-            transition: transform 0.1s, background 0.2s, box-shadow 0.2s;
-            border-bottom: 4px solid rgba(0,0,0,0.3);
+            border-radius: 5px;
+            transition: 0.2s;
+            border: 1px solid #333;
         }
 
-        .tile:hover {
-            background: #334155;
-            box-shadow: 0 0 15px var(--primary);
-        }
+        .tile:hover { background: #333; transform: scale(1.05); }
+        .tile.empty { background: transparent; border: none; cursor: default; }
 
-        .tile.empty {
-            background: transparent;
-            cursor: default;
-            border: none;
-            box-shadow: none;
-        }
-
-        .controls {
+        /* Leaderboard */
+        .leaderboard {
             margin-top: 30px;
-            display: flex;
-            gap: 20px;
-            align-items: center;
+            width: 300px;
+            border-top: 1px solid #444;
+            padding-top: 10px;
         }
+
+        table { width: 100%; font-size: 0.9rem; }
+        th { color: var(--accent); }
+        .score-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #222; }
 
         button {
-            padding: 10px 25px;
-            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            padding: 10px 20px;
+            background: var(--accent);
             border: none;
             color: white;
-            font-weight: bold;
-            border-radius: 5px;
             cursor: pointer;
-            transition: opacity 0.2s;
+            font-weight: bold;
         }
 
-        button:hover { opacity: 0.8; }
-
-        #message { font-weight: bold; color: #4ade80; height: 20px; }
+        #funny-msg { color: #888; margin: 10px 0; font-style: italic; font-size: 0.8rem; }
     </style>
 </head>
 <body>
 
-    <h1>Logic Puzzle</h1>
-    <div id="message"></div>
-    <div class="game-container" id="grid"></div>
+    <div id="overlay">
+        <div class="login-box">
+            <h2 style="color: var(--accent)">SYSTEM ACCESS REQUIRED</h2>
+            <p>Enter your SysAdmin handle to begin:</p>
+            <input type="text" id="username" placeholder="Guest_User" maxlength="12"><br>
+            <button onclick="startGame()">INITIALIZE</button>
+        </div>
+    </div>
 
-    <div class="controls">
-        <div>Moves: <span id="move-count">0</span></div>
-        <button onclick="shuffleGame()">Reset System</button>
+    <div class="game-wrapper" id="game-ui">
+        <h1 id="welcome-msg"></h1>
+        <div id="funny-msg">Status: Servers are on fire. Fix them.</div>
+        
+        <div class="grid" id="grid"></div>
+
+        <div style="margin-top: 20px;">
+            Moves: <span id="move-count" style="color: var(--accent)">0</span>
+            <button onclick="shuffle()" style="margin-left: 20px; background: #444;">Panic Reset</button>
+        </div>
+
+        <div class="leaderboard">
+            <h3>Top Engineers (Best Scores)</h3>
+            <div id="score-list"></div>
+        </div>
     </div>
 
     <script>
-        const gridElement = document.getElementById('grid');
-        const moveDisplay = document.getElementById('move-count');
-        const message = document.getElementById('message');
-        
-        let tiles = [...Array(15).keys()].map(i => i + 1);
-        tiles.push(null); // The empty space
+        let currentPlayer = "";
         let moves = 0;
+        let tiles = [1, 2, 3, 4, 5, 6, 7, 8, null];
+        const gridElement = document.getElementById('grid');
+        
+        const funnyInsults = [
+            "My grandma clicks faster than this.",
+            "Are you sure you're a Cloud Engineer?",
+            "AWS is charging you $0.01 for every wrong move.",
+            "Error 404: Skill not found.",
+            "The server is melting... hurry up!"
+        ];
+
+        function startGame() {
+            const name = document.getElementById('username').value.trim();
+            if (!name) return alert("You need a name to be blamed for the crash!");
+            currentPlayer = name;
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'block';
+            document.getElementById('welcome-msg').innerText = "User: " + currentPlayer;
+            updateLeaderboard();
+            shuffle();
+        }
 
         function createBoard() {
             gridElement.innerHTML = '';
             tiles.forEach((tile, index) => {
-                const tileDiv = document.createElement('div');
-                tileDiv.classList.add('tile');
-                if (tile === null) {
-                    tileDiv.classList.add('empty');
-                    tileDiv.innerText = '';
-                } else {
-                    tileDiv.innerText = tile;
-                    tileDiv.addEventListener('click', () => moveTile(index));
+                const div = document.createElement('div');
+                div.classList.add('tile');
+                if (tile === null) div.classList.add('empty');
+                else {
+                    div.innerText = "SRV-" + tile;
+                    div.onclick = () => move(index);
                 }
-                gridElement.appendChild(tileDiv);
+                gridElement.appendChild(div);
             });
         }
 
-        function moveTile(index) {
-            const emptyIndex = tiles.indexOf(null);
-            const validMoves = [index - 1, index + 1, index - 4, index + 4];
+        function move(index) {
+            const empty = tiles.indexOf(null);
+            const isAdj = [index-1, index+1, index-3, index+3].includes(empty);
+            
+            // Prevent row wrapping
+            const wrap = (index % 3 === 0 && empty === index - 1) || (index % 3 === 2 && empty === index + 1);
 
-            // Check if move is valid (adjacent and not wrapping rows)
-            const isAdjacent = validMoves.includes(emptyIndex);
-            const isSameRow = Math.floor(index / 4) === Math.floor(emptyIndex / 4);
-            const isSameCol = index % 4 === emptyIndex % 4;
-
-            if (isAdjacent && (isSameRow || isSameCol)) {
-                swap(index, emptyIndex);
+            if (isAdj && !wrap) {
+                [tiles[index], tiles[empty]] = [tiles[empty], tiles[index]];
                 moves++;
-                moveDisplay.innerText = moves;
+                document.getElementById('move-count').innerText = moves;
+                if (moves % 5 === 0) {
+                    document.getElementById('funny-msg').innerText = "Status: " + funnyInsults[Math.floor(Math.random()*funnyInsults.length)];
+                }
                 createBoard();
                 checkWin();
             }
         }
 
-        function swap(idx1, idx2) {
-            const temp = tiles[idx1];
-            tiles[idx1] = tiles[idx2];
-            tiles[idx2] = temp;
-        }
-
-        function shuffleGame() {
-            // Shuffle by simulating random valid moves so the puzzle is always solvable
-            for (let i = 0; i < 200; i++) {
-                const emptyIndex = tiles.indexOf(null);
-                const neighbors = [];
-                if (emptyIndex % 4 > 0) neighbors.push(emptyIndex - 1);
-                if (emptyIndex % 4 < 3) neighbors.push(emptyIndex + 1);
-                if (emptyIndex > 3) neighbors.push(emptyIndex - 4);
-                if (emptyIndex < 12) neighbors.push(emptyIndex + 4);
-                
-                const randomNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
-                swap(emptyIndex, randomNeighbor);
+        function shuffle() {
+            // Real shuffle to ensure solvability
+            for (let i = 0; i < 100; i++) {
+                const empty = tiles.indexOf(null);
+                const possible = [empty-1, empty+1, empty-3, empty+3].filter(x => x >= 0 && x < 9);
+                const random = possible[Math.floor(Math.random() * possible.length)];
+                [tiles[empty], tiles[random]] = [tiles[random], tiles[empty]];
             }
             moves = 0;
-            moveDisplay.innerText = moves;
-            message.innerText = "";
+            document.getElementById('move-count').innerText = moves;
             createBoard();
         }
 
         function checkWin() {
-            const winState = [...Array(15).keys()].map(i => i + 1);
-            winState.push(null);
-            if (JSON.stringify(tiles) === JSON.stringify(winState)) {
-                message.innerText = "SYSTEM OPTIMIZED: YOU WIN!";
+            if (tiles.join(',') === "1,2,3,4,5,6,7,8,") {
+                alert("CONGRATS! You fixed the cloud in " + moves + " moves.");
+                saveScore(currentPlayer, moves);
+                shuffle();
             }
         }
 
-        shuffleGame(); // Initialize
+        function saveScore(name, score) {
+            let scores = JSON.parse(localStorage.getItem('cloud_scores') || "[]");
+            scores.push({ name, score });
+            scores.sort((a, b) => a.score - b.score); // Lower is better
+            scores = scores.slice(0, 5); // Keep top 5
+            localStorage.setItem('cloud_scores', JSON.stringify(scores));
+            updateLeaderboard();
+        }
+
+        function updateLeaderboard() {
+            const scores = JSON.parse(localStorage.getItem('cloud_scores') || "[]");
+            const list = document.getElementById('score-list');
+            list.innerHTML = scores.map(s => `
+                <div class="score-row">
+                    <span>${s.name}</span>
+                    <span>${s.score} Moves</span>
+                </div>
+            `).join('') || "No deployments yet.";
+        }
     </script>
 </body>
 </html>
